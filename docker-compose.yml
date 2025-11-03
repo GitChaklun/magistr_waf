@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  juice:
+    image: bkimminich/juice-shop:latest
+    container_name: juice
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - magistr_net
+
+  waf:
+    build:
+      context: ./waf
+    container_name: waf
+    depends_on:
+      - juice
+    ports:
+      - "8082:80"
+    volumes:
+      - ./waf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./results:/var/log/waf_results:rw
+    environment:
+      UPSTREAM_HOST: "juice"
+      UPSTREAM_PORT: "3000"
+    networks:
+      - magistr_net
+
+  attacker:
+    build:
+      context: ./attacker
+    container_name: attacker
+    depends_on:
+      - waf
+    volumes:
+      - ./results:/opt/results:rw
+      - ./attacker:/opt/attacker:rw
+    environment:
+      TARGET: "http://waf:80"
+      WORKERS: "16"
+      REPEAT: "50"
+      CONTAMINATION: "0.05"
+    networks:
+      - magistr_net
+    tty: true
+
+networks:
+  magistr_net:
+    name: magistr_waf_net
+
