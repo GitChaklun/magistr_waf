@@ -10,6 +10,11 @@ access2features_v2.py
 import csv, re, argparse, math, os
 from urllib.parse import urlparse, parse_qs
 from collections import Counter
+import math
+from collections import Counter
+import numpy as np
+
+
 
 def shannon_entropy(s):
     if not s: return 0.0
@@ -40,6 +45,55 @@ with open(INF,'r', errors='ignore') as fh, open(OUTF,'w', newline='') as out:
     writer = csv.writer(out)
     header = ["time","client_ip","method","uri","status","req_time","uri_len","qparam_count","has_sqli","has_xss","uri_entropy","special_chars","frac_non_alnum","user_agent_suspicious"]
     writer.writerow(header)
+
+def tokenise(s):
+    if not isinstance(s, str): return []
+    # split on non-word chars
+    return [t for t in re.split(r'[^A-Za-z0-9]+', s) if t!='']
+
+def avg_token_len(s):
+    toks = tokenise(s)
+    return (sum(len(t) for t in toks)/len(toks)) if toks else 0.0
+
+def token_count(s):
+    return len(tokenise(s))
+
+def num_digits(s):
+    if not isinstance(s,str): return 0
+    return sum(c.isdigit() for c in s)
+
+def upper_frac(s):
+    if not isinstance(s,str): return 0.0
+    letters = [c for c in s if c.isalpha()]
+    return (sum(1 for c in letters if c.isupper())/len(letters)) if letters else 0.0
+
+def shannon_entropy(s):
+    if not isinstance(s,str) or s=='':
+        return 0.0
+    cnt = Counter(s)
+    probs = [v/len(s) for v in cnt.values()]
+    return -sum(p*math.log2(p) for p in probs if p>0)
+
+# apply to dataframe 'df' with columns 'uri' and 'payload' or similar
+# adjust names to actual df column names used in your script
+if 'uri' in df.columns:
+    df['path_depth'] = df['uri'].astype(str).apply(lambda x: len([p for p in x.split('/') if p!='']))
+    df['num_digits'] = df['uri'].astype(str).apply(num_digits)
+    df['avg_token_len'] = df['uri'].astype(str).apply(avg_token_len)
+    df['token_count'] = df['uri'].astype(str).apply(token_count)
+    df['upper_frac'] = df['uri'].astype(str).apply(upper_frac)
+    df['param_value_entropy'] = df['uri'].astype(str).apply(lambda x: shannon_entropy(x.split('?')[-1] if '?' in x else ''))
+else:
+    # if script uses 'payload' column
+    if 'payload' in df.columns:
+        df['path_depth'] = df['payload'].astype(str).apply(lambda x: len([p for p in x.split('/') if p!='']))
+        df['num_digits'] = df['payload'].astype(str).apply(num_digits)
+        df['avg_token_len'] = df['payload'].astype(str).apply(avg_token_len)
+        df['token_count'] = df['payload'].astype(str).apply(token_count)
+        df['upper_frac'] = df['payload'].astype(str).apply(upper_frac)
+        df['param_value_entropy'] = df['payload'].astype(str).apply(shannon_entropy)
+# --- END extra features patch ---
+
     for line in fh:
         line=line.strip()
         if not line: continue

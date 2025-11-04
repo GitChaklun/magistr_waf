@@ -1,0 +1,12 @@
+# data/artifacts
+results/*.csv
+results/*.log
+results/*_auto.csv
+results/ml_results_*.csv
+results/combined_results*.csv
+
+# local
+*.pyc
+__pycache__/
+.env
+
