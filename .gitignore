@@ -4,6 +4,10 @@ results/*.log
 results/*_auto.csv
 results/ml_results_*.csv
 results/combined_results*.csv
+results/*
+# but keep baselines
+!results/baseline/
+!results/baseline/**
 
 # local
 *.pyc
