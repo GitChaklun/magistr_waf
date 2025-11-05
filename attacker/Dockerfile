@@ -8,8 +8,8 @@ WORKDIR /opt/attacker
 
 # копируем все скрипты (generate_requests.py, access2features.py, train_isolationforest.py, scripts/)
 COPY generate_requests.py /opt/attacker/generate_requests.py
-COPY access2features.py /opt/attacker/access2features.py
-COPY train_isolationforest.py /opt/attacker/train_isolationforest.py
+COPY access2features_v2.py /opt/attacker/access2features_v2.py
+COPY train_isolationforest_fixed.py /opt/attacker/train_isolationforest_fixed.py
 COPY scripts /opt/attacker/scripts
 
 # ставим зависимости для скриптов (requests + pandas + sklearn и т.д.)
