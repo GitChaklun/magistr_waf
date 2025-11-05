@@ -1,31 +1,69 @@
-version: "3.8"
-
+# docker-compose.yml — full setup for magistr_waf (fixed: single services section)
 services:
   juice:
     image: bkimminich/juice-shop:latest
-    container_name: juice
+    container_name: magistr_waf_juice
     restart: unless-stopped
-    expose:
-      - "3000"
     networks:
-      - magistr_net
+      - magistr_waf_net
+    ports:
+      - "3000:3000"
 
+  # OpenResty as simple WAF/proxy (optional, lightweight)
   waf:
-    build:
-      context: ./waf
-    container_name: waf
+    image: openresty/openresty:alpine
+    container_name: magistr_waf_openresty
     depends_on:
       - juice
+    environment:
+      BACKEND: "http://juice:3000"
     ports:
       - "8082:80"
     volumes:
+      - ./waf/logs:/var/log/waf_results:rw
       - ./waf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
-      - ./results:/var/log/waf_results:rw
-    environment:
-      UPSTREAM_HOST: "juice"
-      UPSTREAM_PORT: "3000"
+      - ./waf/custom_waf.lua:/etc/openresty/custom_waf.lua:ro
     networks:
-      - magistr_net
+      - magistr_waf_net
+    restart: unless-stopped
+
+  modsec:
+    image: owasp/modsecurity-crs:nginx
+    container_name: magistr_waf_modsec
+    depends_on:
+      - juice
+    ports:
+      - "8081:8080"
+      - "8444:8443"
+    environment:
+      - PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=5
+      - BACKEND=http://juice:3000
+    networks:
+      - magistr_waf_net
+    restart: unless-stopped
+
+  coraza:
+    image: ghcr.io/coreruleset/coraza-crs:4.7.0-caddy-alpine-202410181210
+    container_name: magistr_waf_coraza
+    depends_on:
+      - juice
+    environment:
+      BACKEND: "http://juice:3000"
+      PORT: "8080"
+      PARANOIA: "1"
+      BLOCKING_PARANOIA: "1"
+      ANOMALY_INBOUND: "5"
+      ANOMALY_OUTBOUND: "4"
+    ports:
+      - "8083:8080"
+    volumes:
+      - ./coraza/coraza_rules:/etc/coraza/rules:ro
+      - ./results:/opt/results:rw
+    networks:
+      - magistr_waf_net
+    restart: unless-stopped
 
   attacker:
     build:
@@ -42,10 +80,10 @@ services:
       REPEAT: "50"
       CONTAMINATION: "0.05"
     networks:
-      - magistr_net
+      - magistr_waf_net
     tty: true
 
 networks:
-  magistr_net:
+  magistr_waf_net:
     name: magistr_waf_net
-
+    driver: bridge

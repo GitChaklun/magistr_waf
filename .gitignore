@@ -10,3 +10,30 @@ results/combined_results*.csv
 __pycache__/
 .env
 
+
+
+# OS / editors
+.DS_Store
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Backups / temp
+*_back
+*_back_v2
+*_bak
+*.bak
+*~ 
+results_20*/
+
+# Run artifacts
+results/**
+samples/**
+waf/logs/**
+!results/.gitkeep
+!samples/.gitkeep
+!waf/logs/.gitkeep

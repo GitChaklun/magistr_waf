@@ -83,7 +83,8 @@ print("Precision:", ratio(tp,fp))
 
 # examples
 print("\nDetected anomalies sample:")
-print(df[df['anomaly']==1][['attack_id','attack_type','uri','blocked']].head(10).to_string(index=False))
+cols=[c for c in ["attack_id","attack_type","uri","blocked"] if c in df.columns]
+print(df[df["anomaly"]==1][cols].head(10).to_string(index=False))
 
 print("\nMissed attacks sample (FN):")
 print(df[(df['is_attack']==True) & (df['anomaly']==0)][['attack_id','attack_type','uri','blocked']].head(10).to_string(index=False))
